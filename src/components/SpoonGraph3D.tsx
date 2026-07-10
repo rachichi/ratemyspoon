@@ -1,4 +1,4 @@
-import { Component, Fragment, useEffect, useRef, useState, type ReactNode } from "react";
+import { Component, useEffect, useRef, useState, type ReactNode } from "react";
 import _Plot from "react-plotly.js";
 import { ratioScore, materialScore, overallScore } from "../utils/spoonScoring";
 import { spoons } from "../data/spoons";
@@ -23,7 +23,7 @@ const rated = spoons.map(s => ({
   material:               s.material,
   material_rating:        materialScore(s.material),
   overall_rating:         overallScore(s),
-  review:                 s.review,
+  location:               s.location,
 }));
 
 function fitPlane(pts: { x: number; y: number; z: number }[]) {
@@ -203,7 +203,7 @@ export default function SpoonGraph3D() {
         <table className="w-full text-[10px]" style={{ borderCollapse: "collapse" }}>
           <thead style={{ position: "sticky", top: 0, zIndex: 2 }}>
             <tr style={{ background: "#f0e8d8" }}>
-              {["Name", "Ratio", "Enjoyment", "Material", "Overall"].map(h => (
+              {["Name", "Ratio", "Enjoyment", "Material", "Overall", "Used At"].map(h => (
                 <th key={h}
                   className="px-3 py-2 text-left tracking-wide uppercase text-[9px] font-medium text-warm-black/50"
                   style={{ borderBottom: "1px solid rgba(26,26,26,0.12)" }}>
@@ -214,42 +214,32 @@ export default function SpoonGraph3D() {
           </thead>
           <tbody>
             {rated.map((r, i) => (
-              <Fragment key={r.name}>
-                <tr
-                  onMouseEnter={() => setHoveredIdx(i)}
-                  onMouseLeave={() => setHoveredIdx(null)}
-                  style={{
-                    background:   hoveredIdx === i ? "rgba(229,57,53,0.07)" : i % 2 === 0 ? "transparent" : "rgba(26,26,26,0.025)",
-                    borderBottom: hoveredIdx === i ? "none" : "1px solid rgba(26,26,26,0.06)",
-                    cursor:       "default",
-                  }}>
-                  <td className="px-3 py-1.5 font-sans">{r.name}</td>
-                  <td className="px-3 py-1.5">
-                    <div className="flex items-center gap-2">
-                      <RatioBar ratio={r.bowl_to_handle_ratio} />
-                      <span className="tabular-nums font-mono">{r.bowl_to_handle_ratio.toFixed(2)}</span>
-                    </div>
-                  </td>
-                  <td className="px-3 py-1.5 tabular-nums font-mono">{r.enjoyment.toFixed(2)}</td>
-                  <td className="px-3 py-1.5">
-                    <span className="inline-block px-1.5 py-0.5 rounded-sm text-[9px] uppercase tracking-wide text-white"
-                      style={{ background: MATERIAL_COLOR[r.material] ?? "#888" }}>
-                      {r.material}
-                    </span>
-                  </td>
-                  <td className="px-3 py-1.5 tabular-nums font-mono font-medium">{r.overall_rating.toFixed(2)}</td>
-                </tr>
-                {hoveredIdx === i && (
-                  <tr
-                    onMouseEnter={() => setHoveredIdx(i)}
-                    onMouseLeave={() => setHoveredIdx(null)}
-                    style={{ background: "rgba(229,57,53,0.07)", borderBottom: "1px solid rgba(26,26,26,0.06)" }}>
-                    <td colSpan={5} className="px-3 pb-2 text-[9px] text-warm-black/60 italic leading-relaxed">
-                      {r.review}
-                    </td>
-                  </tr>
-                )}
-              </Fragment>
+              <tr
+                key={r.name}
+                onMouseEnter={() => setHoveredIdx(i)}
+                onMouseLeave={() => setHoveredIdx(null)}
+                style={{
+                  background:   hoveredIdx === i ? "rgba(229,57,53,0.07)" : i % 2 === 0 ? "transparent" : "rgba(26,26,26,0.025)",
+                  borderBottom: "1px solid rgba(26,26,26,0.06)",
+                  cursor:       "default",
+                }}>
+                <td className="px-3 py-1.5 font-sans">{r.name}</td>
+                <td className="px-3 py-1.5">
+                  <div className="flex items-center gap-2">
+                    <RatioBar ratio={r.bowl_to_handle_ratio} />
+                    <span className="tabular-nums font-mono">{r.bowl_to_handle_ratio.toFixed(2)}</span>
+                  </div>
+                </td>
+                <td className="px-3 py-1.5 tabular-nums font-mono">{r.enjoyment.toFixed(2)}</td>
+                <td className="px-3 py-1.5">
+                  <span className="inline-block px-1.5 py-0.5 rounded-sm text-[9px] uppercase tracking-wide text-white"
+                    style={{ background: MATERIAL_COLOR[r.material] ?? "#888" }}>
+                    {r.material}
+                  </span>
+                </td>
+                <td className="px-3 py-1.5 tabular-nums font-mono font-medium">{r.overall_rating.toFixed(2)}</td>
+                <td className="px-3 py-1.5 text-warm-black/70">{r.location}</td>
+              </tr>
             ))}
           </tbody>
         </table>

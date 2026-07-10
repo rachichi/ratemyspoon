@@ -255,10 +255,28 @@ export default function SpoonCarousel({ spoons }: Props) {
         })}
       </div>
 
-      <div className="shrink-0 flex flex-col items-center justify-center gap-1 py-5">
+      <div className="shrink-0 flex flex-col items-center justify-center gap-1 -mt-10 pb-14">
         <span className="text-lg tracking-wide text-warm-black">{score.toFixed(2)} / 1</span>
         <span className="text-sm font-medium text-warm-black tracking-wide">{activeSpoon.name}</span>
-        <p className="text-xs text-warm-black/70 text-center max-w-xs leading-relaxed">{activeSpoon.review}</p>
+        <p className="text-xs text-warm-black/70 text-center max-w-xs leading-relaxed">
+          {activeSpoon.review}{" "}
+          <span className="text-warm-black/50">
+            Used at{" "}
+            {activeSpoon.mapUrl ? (
+              <a
+                href={activeSpoon.mapUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline decoration-dotted underline-offset-2 hover:text-warm-black transition-colors"
+              >
+                {activeSpoon.location}
+              </a>
+            ) : (
+              activeSpoon.location
+            )}
+            .
+          </span>
+        </p>
       </div>
     </div>
   );

@@ -87,6 +87,8 @@ Add one entry to the `spoons` array in `src/data/spoons.ts` and drop its image i
   material: "metal",              // "plastic" | "wood" | "metal"
   review: "One-sentence review.",
   date: "2025-11-01",
+  location: "Café Nero, Boston",  // where you used the spoon
+  mapUrl: "https://www.google.com/maps/search/?api=1&query=Cafe+Nero+Boston", // optional
 }
 ```
 
@@ -104,6 +106,10 @@ and the same three values feed the browse tags and the 3D graph automatically.
   `~0.5` for "fine", and `<0.3` for something you'd rather not touch.
 - **`material`** — one of `"plastic"` (0.0), `"wood"` (0.5), or `"metal"` (1.0). Treat
   stainless steel, silver, etc. as `"metal"`.
+- **`location`** — where you used the spoon; shown as "Used at …" under the review.
+- **`mapUrl`** *(optional)* — a Google Maps link. When present, the location becomes a
+  clickable link (opens in a new tab). Easiest to grab one with the
+  `https://www.google.com/maps/search/?api=1&query=<place+name>` format.
 
 ### Image requirements
 
