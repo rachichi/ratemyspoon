@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Spoon } from "../data/spoons";
-import { computeScore, getBadgeColor, BADGE_CLASSES } from "../utils/scoring";
+import { BADGE_CLASSES } from "../utils/scoring";
+import { ratioScore, materialScore, overallScore, scoreColor } from "../utils/spoonScoring";
 
 interface Props {
   spoons: Spoon[];
@@ -86,7 +87,7 @@ export default function SpoonCarousel({ spoons }: Props) {
 
   const n = spoons.length;
   const activeSpoon = spoons[((pos % n) + n) % n]!;
-  const score = computeScore(activeSpoon.scores);
+  const score = overallScore(activeSpoon);
   const { w, h } = size;
 
   // Render a buffer of ±3 virtual slots. Slots at |offset|===3 are off-screen (opacity 0)
@@ -157,12 +158,12 @@ export default function SpoonCarousel({ spoons }: Props) {
             const { px, py } = badgeOffsets[i]!;
 
             if (key === "ratio") {
-              const ratio = activeSpoon.bowl_length / (activeSpoon.bowl_length + activeSpoon.handle_length);
+              const ratio = activeSpoon.ratio;
               const spoonCX  = 0.50 * w;
               const spoonTopY = (0.5 - 0.41) * h;
               const spoonBotY = (0.5 + 0.41) * h;
               const neckY    = spoonTopY + ratio * (spoonBotY - spoonTopY);
-              const color = getBadgeColor(Math.round(ratio * 25));
+              const color = scoreColor(ratioScore(ratio));
               const strokeColor = color === "green" ? "#3a8a3a" : color === "amber" ? "#9a6020" : "#8a2020";
               const badgeCx  = bx * w + px;
               const badgeCy  = neckY  + py;
@@ -177,8 +178,8 @@ export default function SpoonCarousel({ spoons }: Props) {
               );
             }
 
-            const scoreVal = activeSpoon.scores[key as keyof typeof activeSpoon.scores];
-            const color = getBadgeColor(scoreVal);
+            const val01 = key === "enjoyment" ? activeSpoon.enjoyment : materialScore(activeSpoon.material);
+            const color = scoreColor(val01);
             const badgeCx = bx * w + px;
             const badgeCy = by * h + py;
             const anchorX = ax * w;
@@ -215,9 +216,9 @@ export default function SpoonCarousel({ spoons }: Props) {
           const { px, py } = badgeOffsets[i]!;
 
           if (key === "ratio") {
-            const rawRatio = activeSpoon.bowl_length / (activeSpoon.bowl_length + activeSpoon.handle_length);
+            const rawRatio = activeSpoon.ratio;
             const neckTopFrac = (0.5 - 0.41) + rawRatio * 0.82;
-            const color = getBadgeColor(Math.round(rawRatio * 25));
+            const color = scoreColor(ratioScore(rawRatio));
             return (
               <div key={key} style={{
                 position: "absolute",
@@ -231,8 +232,11 @@ export default function SpoonCarousel({ spoons }: Props) {
             );
           }
 
-          const scoreVal = activeSpoon.scores[key as keyof typeof activeSpoon.scores];
-          const color = getBadgeColor(scoreVal);
+          const val01 = key === "enjoyment" ? activeSpoon.enjoyment : materialScore(activeSpoon.material);
+          const color = scoreColor(val01);
+          const label = key === "enjoyment"
+            ? `enjoyment: ${activeSpoon.enjoyment.toFixed(2)}`
+            : `material: ${activeSpoon.material}`;
           return (
             <div
               key={key}
@@ -245,14 +249,14 @@ export default function SpoonCarousel({ spoons }: Props) {
               }}
               className={`px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap ${BADGE_CLASSES[color]}`}
             >
-              {key}: {scoreVal}/25
+              {label}
             </div>
           );
         })}
       </div>
 
       <div className="shrink-0 flex flex-col items-center justify-center gap-1 py-5">
-        <span className="text-lg tracking-wide text-warm-black">{score}/100</span>
+        <span className="text-lg tracking-wide text-warm-black">{score.toFixed(2)} / 1</span>
         <span className="text-sm font-medium text-warm-black tracking-wide">{activeSpoon.name}</span>
         <p className="text-xs text-warm-black/70 text-center max-w-xs leading-relaxed">{activeSpoon.review}</p>
       </div>

@@ -1,4 +1,10 @@
-import type { SpoonScores } from "../data/spoons";
+// Legacy 0–25 per-category scoring — used only by the live camera-rating view.
+export interface SpoonScores {
+  bowl: number;       // 0–25
+  enjoyment: number;  // 0–25
+  length: number;     // 0–25
+  material: number;   // 0–25
+}
 
 export function computeScore(scores: SpoonScores): number {
   return scores.bowl + scores.enjoyment + scores.length + scores.material;

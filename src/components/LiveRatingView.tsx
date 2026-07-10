@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import "@tensorflow/tfjs";
 import * as handPoseDetection from "@tensorflow-models/hand-pose-detection";
 import * as faceapi from "@vladmandic/face-api";
-import type { SpoonScores } from "../data/spoons";
+import type { SpoonScores } from "../utils/scoring";
 import { computeScore, getBadgeColor, BADGE_CLASSES } from "../utils/scoring";
 import MiniRatingGraph from "./MiniRatingGraph";
 

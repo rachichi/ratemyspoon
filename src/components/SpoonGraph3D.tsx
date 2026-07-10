@@ -1,6 +1,6 @@
 import { Component, Fragment, useEffect, useRef, useState, type ReactNode } from "react";
 import _Plot from "react-plotly.js";
-import { computeSpoonRating } from "../utils/spoonScoring";
+import { ratioScore, materialScore, overallScore } from "../utils/spoonScoring";
 import { spoons } from "../data/spoons";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -15,22 +15,16 @@ const MATERIAL_COLOR: Record<string, string> = {
   metal:   "#3a8a3a",
 };
 
-function toMaterialType(m: string): "plastic" | "wood" | "metal" {
-  const lower = m.toLowerCase();
-  if (lower === "plastic") return "plastic";
-  if (lower === "wood") return "wood";
-  return "metal";
-}
-
-const rated = spoons.map(s =>
-  computeSpoonRating({
-    name: s.name,
-    bowl_length: s.bowl_length,
-    handle_length: s.handle_length,
-    enjoyment: s.scores.enjoyment / 25,
-    material: toMaterialType(s.material),
-  })
-).map((r, i) => ({ ...r, review: spoons[i]!.review }));
+const rated = spoons.map(s => ({
+  name:                   s.name,
+  bowl_to_handle_ratio:   s.ratio,
+  ratio_preference_score: ratioScore(s.ratio),
+  enjoyment:              s.enjoyment,
+  material:               s.material,
+  material_rating:        materialScore(s.material),
+  overall_rating:         overallScore(s),
+  review:                 s.review,
+}));
 
 function fitPlane(pts: { x: number; y: number; z: number }[]) {
   let sx = 0, sy = 0, sz = 0, sxx = 0, sxy = 0, sxz = 0, syy = 0, syz = 0;
@@ -196,7 +190,7 @@ export default function SpoonGraph3D() {
       <div style={{ height: chartH, flexShrink: 0, overflow: "hidden" }}>
         <PlotBoundary>
           <Plot
-            data={[planeTrace, wireframeTrace, scatterTrace]}
+            data={[planeTrace, wireframeTrace, scatterTrace] as Plotly.Data[]}
             layout={layout as Partial<Plotly.Layout>}
             style={{ width: size.w, height: chartH }}
             config={{ displayModeBar: false, responsive: false }}

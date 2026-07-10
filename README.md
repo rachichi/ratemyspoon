@@ -13,10 +13,11 @@ Open http://localhost:5173 (or whichever port Vite picks).
 
 ## Architecture
 
-`src/data/spoons.ts` is the **single source of truth**. Both the browse carousel and the
-3D graph read from this one array — the graph maps each spoon through
-`computeSpoonRating()` at runtime, so adding a spoon in one place makes it show up
-everywhere. There is no longer a separate list to keep in sync for the main graph.
+`src/data/spoons.ts` is the **single source of truth**. Each spoon stores its three scoring
+inputs — `ratio`, `enjoyment`, and `material` — directly as 0–1 values (material is a
+keyword). Both the browse carousel and the 3D graph read from this one array and score it
+with the tiny pure helpers in `spoonScoring.ts`, so adding a spoon in one place makes it show
+up everywhere with no geometry or extra lists to keep in sync.
 
 ```
 src/
@@ -24,53 +25,44 @@ src/
 ├── main.tsx                     # React entry point
 │
 ├── data/
-│   ├── spoons.ts                # ★ Single source of truth — powers browse AND the 3D graph
+│   ├── spoons.ts                # ★ Single source of truth — ratio/enjoyment/material per spoon
 │   └── graphSpoons.ts           # Legacy sample set — only feeds the live-view MiniRatingGraph
 │
 ├── utils/
-│   ├── scoring.ts               # Legacy 0–25 per-category scoring (browse badges + live view)
-│   └── spoonScoring.ts          # Physics-based scoring model (3D graph + live view)
+│   ├── scoring.ts               # Legacy 0–25 per-category scoring (used only by the live view)
+│   └── spoonScoring.ts          # 0–1 scoring model — ratioScore / materialScore / overallScore
 │
 └── components/
     ├── Navbar.tsx                # Header bar
-    ├── SpoonCarousel.tsx         # Browse view — image carousel + parallax score badges
-    ├── SpoonGraph3D.tsx          # 3D graph view — derives ratings from spoons.ts via computeSpoonRating()
+    ├── SpoonCarousel.tsx         # Browse view — image carousel + parallax score tags
+    ├── SpoonGraph3D.tsx          # 3D graph view — scatter + fitted surface + data table
     ├── MiniRatingGraph.tsx       # SVG mini chart shown in the live-rating sidebar (uses graphSpoons.ts)
     ├── LiveRatingView.tsx        # Live camera view — hand/face ML inference + real-time scoring
-    ├── Sidebar.tsx               # Detail panel for selected spoon in graph view
-    ├── RatingPanel.tsx           # Manual rating form
     └── CameraCapture.tsx         # Camera snapshot helper
 ```
 
-### How the ratio is calculated (`src/utils/spoonScoring.ts`)
+### The scoring model (`src/utils/spoonScoring.ts`)
 
-The **bowl-to-handle ratio** is the fraction of the whole spoon taken up by the bowl:
+A spoon's **overall rating is out of 1** — the equal-weight average of three inputs, each
+normalised to 0–1:
 
-```
-bowl_to_handle_ratio = bowl_length / (bowl_length + handle_length)
-```
-
-The ideal spoon is **20% bowl / 80% handle** (`IDEAL_RATIO = 0.20`). A spoon earns a
-full ratio score at exactly 0.20 and falls off **linearly** the further it strays, hitting
-0 once it is a full 0.20 away from ideal (i.e. at ratio 0.0 or 0.40):
-
-```
-ratio_preference_score = max(0, min(1, 1 − |ratio − 0.20| / 0.20))
-```
-
-This score is one of three equally weighted axes, all normalised 0–1:
-
-| Axis | Formula |
-|------|---------|
-| **Ratio** | `max(0, 1 − |ratio − 0.20| / 0.20)` |
-| **Enjoyment** | Direct 0–1 input (in `spoons.ts` this is `scores.enjoyment / 25`) |
+| Axis | How it scores |
+|------|---------------|
+| **Ratio** | Peaks at **1.0** when `ratio = 0.20` (20% bowl), falling **linearly** to 0 as it deviates |
+| **Enjoyment** | Direct 0–1 input — used as-is |
 | **Material** | plastic = 0.0 · wood = 0.5 · metal = 1.0 |
 
 ```
-overall_rating = (ratio_preference_score + enjoyment + material_rating) / 3
+ratioScore    = max(0, 1 − |ratio − 0.20| / 0.20)   // 0 at ratio 0.0 or 0.40
+overallScore  = (ratioScore + enjoyment + materialScore) / 3
 ```
 
-In the browse carousel, the ratio also drives the on-image marker: the dot is placed at
+`ratio` is stored **directly** on each spoon (no bowl/handle lengths) as the fraction of the
+spoon that is bowl — so `ratio = 0.20` means the bowl is 20% of the spoon's length. These
+three values also drive the parallax tags in the browse view: `ratio: 0.20`,
+`enjoyment: 0.96`, and the `material` keyword.
+
+In the browse carousel, `ratio` also positions the on-image marker: the dot sits at
 `top + ratio × height` down the spoon, marking the bowl/handle "neck". **This only lines up
 if the image is cropped flush to the top and bottom of the spoon** (see below).
 
@@ -90,20 +82,28 @@ Add one entry to the `spoons` array in `src/data/spoons.ts` and drop its image i
   id: "my-spoon",                 // unique kebab-case slug
   name: "My Spoon",               // display name
   image: "/spoons/my-spoon.png",  // path under public/
-  scores: { bowl: 22, enjoyment: 20, length: 18, material: 25 }, // 0–25 each (browse badges)
+  ratio: 0.20,                    // 0–1: fraction of the spoon that is bowl (0.20 is ideal)
+  enjoyment: 0.85,                // 0–1: how much you enjoy using it
+  material: "metal",              // "plastic" | "wood" | "metal"
   review: "One-sentence review.",
-  material: "stainless steel",    // free text for the browse card
   date: "2025-11-01",
-  bowl_length: 4,                 // used for the ratio — any unit, only the proportion matters
-  handle_length: 16,              // same unit as bowl_length
 }
 ```
 
-The 3D graph derives its physics-based rating from `bowl_length`, `handle_length`,
-`scores.enjoyment / 25`, and `material` — so make sure those are set. The material string
-is normalised to `plastic` / `wood` / `metal` (anything not plastic/wood is treated as metal).
-Derived fields (`bowl_to_handle_ratio`, `ratio_preference_score`, `material_rating`,
-`overall_rating`) are computed automatically in `computeSpoonRating()`.
+That's the whole entry — no bowl/handle lengths, no separate score object. The overall
+rating (out of 1) is computed from `ratio`, `enjoyment`, and `material` by `overallScore()`,
+and the same three values feed the browse tags and the 3D graph automatically.
+
+**How to choose each value:**
+
+- **`ratio` (0–1)** — eyeball what fraction of the spoon's length is the bowl. A dessert
+  spoon is roughly `0.20` (the sweet spot). Go lower (`~0.15`) for long-handled/small-bowl
+  spoons and higher (`0.30`+) for ladles or stubby spoons. Remember the score *peaks at
+  0.20* and drops off symmetrically, so `0.10` and `0.30` both score about the same.
+- **`enjoyment` (0–1)** — your subjective delight. Use `0.9`+ for a spoon you love,
+  `~0.5` for "fine", and `<0.3` for something you'd rather not touch.
+- **`material`** — one of `"plastic"` (0.0), `"wood"` (0.5), or `"metal"` (1.0). Treat
+  stainless steel, silver, etc. as `"metal"`.
 
 ### Image requirements
 
@@ -120,8 +120,9 @@ Derived fields (`bowl_to_handle_ratio`, `ratio_preference_score`, `material_rati
 - **`review`:** one sentence, roughly **60–120 characters**. It renders on a single
   centered line under the carousel, so anything longer wraps awkwardly.
 - **`name`:** short enough to fit a badge — aim for **≤ 24 characters**.
-- **`scores`:** each category is 0–25 (total out of 100). Use the same 20 / 10 thresholds the
-  badges color by (≥20 green, ≥10 amber, else red) as a sanity check.
+- **Tag colors:** each 0–1 score colors its tag green (≥ 0.66), amber (≥ 0.33), or red
+  below that — a quick sanity check that your `ratio` / `enjoyment` / `material` land where
+  you'd expect.
 
 ---
 
