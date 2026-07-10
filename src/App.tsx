@@ -26,14 +26,14 @@ export default function App() {
               view === v ? "border-b-2 border-warm-black text-warm-black" : "text-warm-black/40 hover:text-warm-black"
             }`}
           >
-            {v === "browse" ? "Browse" : v === "graph" ? "3D Graph" : "Rate Your Spoon"}
+            {v === "browse" ? "Rachel's Reviews" : v === "graph" ? "Plot" : "Rate Your Spoon"}
           </button>
         ))}
       </div>
 
       <div className="flex flex-1 overflow-hidden">
         {view === "browse" && (
-          <SpoonCarousel spoons={spoons} onRateClick={() => setView("rate")} />
+          <SpoonCarousel spoons={spoons} />
         )}
         {view === "graph" && (
           <SpoonGraph3D />

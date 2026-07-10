@@ -13,6 +13,8 @@ export interface Spoon {
   review: string;
   material: string;
   date: string;
+  bowl_length: number;
+  handle_length: number;
 }
 
 export const spoons: Spoon[] = [
@@ -24,15 +26,8 @@ export const spoons: Spoon[] = [
     review: "Tiny bowl, perfect for sauces. The stubby handle loses points but it moves with confidence.",
     material: "stainless steel",
     date: "2025-09-12",
-  },
-  {
-    id: "birch-spoon",
-    name: "The Birch Spoon",
-    image: "/spoons/image 69.png",
-    scores: { bowl: 22, enjoyment: 24, length: 20, material: 18 },
-    review: "Warm in the hand, beautiful grain. Light in weight — deceptively satisfying to hold.",
-    material: "wood",
-    date: "2025-10-01",
+    bowl_length: 3,
+    handle_length: 9,
   },
   {
     id: "plastic-offender",
@@ -42,6 +37,19 @@ export const spoons: Spoon[] = [
     review: "Absolutely horrendous plastic spoon. Might as well use your hands.",
     material: "plastic",
     date: "2025-10-15",
+    bowl_length: 5,
+    handle_length: 10,
+  },
+  {
+    id: "birch-spoon",
+    name: "The Birch Spoon",
+    image: "/spoons/image 69.png",
+    scores: { bowl: 22, enjoyment: 24, length: 20, material: 18 },
+    review: "Warm in the hand, beautiful grain. Light in weight — deceptively satisfying to hold.",
+    material: "wood",
+    date: "2025-10-01",
+    bowl_length: 4,
+    handle_length: 16,
   },
   {
     id: "the-sterling",
@@ -51,6 +59,8 @@ export const spoons: Spoon[] = [
     review: "Good weight, great length. Almost perfect if not for the dull bowl edges.",
     material: "stainless steel",
     date: "2025-10-22",
+    bowl_length: 3,
+    handle_length: 17,
   },
   {
     id: "the-victorian",
@@ -60,5 +70,7 @@ export const spoons: Spoon[] = [
     review: "Intricate detailing on every millimetre of the handle. Each use feels ceremonial.",
     material: "silver",
     date: "2025-11-20",
+    bowl_length: 3.5,
+    handle_length: 13,
   },
 ];

@@ -4,7 +4,6 @@ import { computeScore, getBadgeColor, BADGE_CLASSES } from "../utils/scoring";
 
 interface Props {
   spoons: Spoon[];
-  onRateClick: () => void;
 }
 
 function slotScale(offset: number): number {
@@ -26,21 +25,19 @@ function slotX(offset: number): number {
 // Badge base positions and spoon anchor positions as fractions (0–1) of carousel dims.
 // Lines are diagonal: badge by ≠ anchor ay.
 const BADGE_DEFS = [
-  { key: "bowl"      as const, bx: 0.665, by: 0.17, ax: 0.515, ay: 0.23 },
-  { key: "enjoyment" as const, bx: 0.315, by: 0.43, ax: 0.484, ay: 0.37 },
-  { key: "length"    as const, bx: 0.670, by: 0.56, ax: 0.518, ay: 0.61 },
-  { key: "material"  as const, bx: 0.305, by: 0.77, ax: 0.482, ay: 0.73 },
+  { key: "ratio"      as const, bx: 0.665, by: 0.17, ax: 0.515, ay: 0.23 },
+  { key: "enjoyment"  as const, bx: 0.315, by: 0.30, ax: 0.484, ay: 0.37 },
+  { key: "material"   as const, bx: 0.305, by: 0.77, ax: 0.482, ay: 0.73 },
 ];
 
 // Per-badge parallax strengths [px-x, px-y]
 const PARALLAX: [number, number][] = [
   [ 8,  6],
   [10,  8],
-  [ 7, 10],
   [11,  6],
 ];
 
-export default function SpoonCarousel({ spoons, onRateClick }: Props) {
+export default function SpoonCarousel({ spoons }: Props) {
   // Unbounded position counter — no modulo wrapping, so spoons never teleport
   const [pos, setPos] = useState(2);
   const [size, setSize] = useState({ w: 1280, h: 560 });
@@ -110,13 +107,6 @@ export default function SpoonCarousel({ spoons, onRateClick }: Props) {
       <div ref={areaRef} className="relative flex-1 overflow-hidden">
 
         <button
-          onClick={onRateClick}
-          className="absolute top-4 right-4 z-30 border border-warm-black/80 px-4 py-2 text-xs tracking-widest uppercase hover:bg-warm-black hover:text-cream transition-colors"
-        >
-          Rate Your Spoon
-        </button>
-
-        <button
           onClick={() => setPos(p => p - 1)}
           className="absolute left-4 top-1/2 -translate-y-1/2 z-30 text-2xl font-light text-warm-black/70 hover:text-warm-black transition-colors select-none"
           aria-label="Previous spoon"
@@ -164,9 +154,31 @@ export default function SpoonCarousel({ spoons, onRateClick }: Props) {
           viewBox={`0 0 ${w} ${h}`}
         >
           {BADGE_DEFS.map(({ key, bx, by, ax, ay }, i) => {
-            const scoreVal = activeSpoon.scores[key];
-            const color = getBadgeColor(scoreVal);
             const { px, py } = badgeOffsets[i]!;
+
+            if (key === "ratio") {
+              const ratio = activeSpoon.bowl_length / (activeSpoon.bowl_length + activeSpoon.handle_length);
+              const spoonCX  = 0.50 * w;
+              const spoonTopY = (0.5 - 0.41) * h;
+              const spoonBotY = (0.5 + 0.41) * h;
+              const neckY    = spoonTopY + ratio * (spoonBotY - spoonTopY);
+              const color = getBadgeColor(Math.round(ratio * 25));
+              const strokeColor = color === "green" ? "#3a8a3a" : color === "amber" ? "#9a6020" : "#8a2020";
+              const badgeCx  = bx * w + px;
+              const badgeCy  = neckY  + py;
+              return (
+                <g key={key}>
+                  {/* Dot at neck */}
+                  <circle cx={spoonCX} cy={neckY} r={3} fill={strokeColor} opacity={0.85} />
+                  {/* Dashed line to badge pill */}
+                  <line x1={spoonCX + 6} y1={neckY} x2={badgeCx - 30} y2={badgeCy}
+                    stroke={strokeColor} strokeWidth={1} strokeDasharray="5 4" opacity={0.65} />
+                </g>
+              );
+            }
+
+            const scoreVal = activeSpoon.scores[key as keyof typeof activeSpoon.scores];
+            const color = getBadgeColor(scoreVal);
             const badgeCx = bx * w + px;
             const badgeCy = by * h + py;
             const anchorX = ax * w;
@@ -188,7 +200,6 @@ export default function SpoonCarousel({ spoons, onRateClick }: Props) {
                   strokeDasharray="5 4"
                   opacity="0.65"
                 />
-                {/* Dot at anchor point on the spoon */}
                 <circle
                   cx={anchorX} cy={anchorY} r={3}
                   fill={strokeColor}
@@ -201,9 +212,27 @@ export default function SpoonCarousel({ spoons, onRateClick }: Props) {
 
         {/* Score badge pills */}
         {BADGE_DEFS.map(({ key, bx, by }, i) => {
-          const scoreVal = activeSpoon.scores[key];
-          const color = getBadgeColor(scoreVal);
           const { px, py } = badgeOffsets[i]!;
+
+          if (key === "ratio") {
+            const rawRatio = activeSpoon.bowl_length / (activeSpoon.bowl_length + activeSpoon.handle_length);
+            const neckTopFrac = (0.5 - 0.41) + rawRatio * 0.82;
+            const color = getBadgeColor(Math.round(rawRatio * 25));
+            return (
+              <div key={key} style={{
+                position: "absolute",
+                left: `${bx * 100}%`,
+                top: `${neckTopFrac * 100}%`,
+                transform: `translate(calc(-50% + ${px}px), calc(-50% + ${py}px))`,
+                zIndex: 20,
+              }} className={`px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap ${BADGE_CLASSES[color]}`}>
+                ratio: {rawRatio.toFixed(2)}
+              </div>
+            );
+          }
+
+          const scoreVal = activeSpoon.scores[key as keyof typeof activeSpoon.scores];
+          const color = getBadgeColor(scoreVal);
           return (
             <div
               key={key}
@@ -224,6 +253,7 @@ export default function SpoonCarousel({ spoons, onRateClick }: Props) {
 
       <div className="shrink-0 flex flex-col items-center justify-center gap-1 py-5">
         <span className="text-lg tracking-wide text-warm-black">{score}/100</span>
+        <span className="text-sm font-medium text-warm-black tracking-wide">{activeSpoon.name}</span>
         <p className="text-xs text-warm-black/70 text-center max-w-xs leading-relaxed">{activeSpoon.review}</p>
       </div>
     </div>
