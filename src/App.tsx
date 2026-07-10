@@ -2,29 +2,15 @@ import { useState } from "react";
 import Navbar from "./components/Navbar";
 import SpoonCarousel from "./components/SpoonCarousel";
 import SpoonGraph3D from "./components/SpoonGraph3D";
-import RatingPanel from "./components/RatingPanel";
+import LiveRatingView from "./components/LiveRatingView";
 import { spoons as initialSpoons } from "./data/spoons";
-import type { Spoon, SpoonScores } from "./data/spoons";
+import type { Spoon } from "./data/spoons";
 
 type View = "browse" | "graph" | "rate";
 
 export default function App() {
   const [view, setView] = useState<View>("browse");
-  const [spoons, setSpoons] = useState<Spoon[]>(initialSpoons);
-
-  function handleSaveSpoon(scores: SpoonScores, review: string, imageDataUrl: string, name: string) {
-    const newSpoon: Spoon = {
-      id: `spoon-${Date.now()}`,
-      name,
-      image: imageDataUrl,
-      scores,
-      review,
-      material: "unknown",
-      date: new Date().toISOString().split("T")[0]!,
-    };
-    setSpoons(prev => [...prev, newSpoon]);
-    setView("browse");
-  }
+  const [spoons] = useState<Spoon[]>(initialSpoons);
 
   return (
     <div className="flex flex-col h-full text-warm-black" style={{ fontFamily: "Helvetica Neue, Helvetica, Arial, sans-serif" }}>
@@ -50,12 +36,10 @@ export default function App() {
           <SpoonCarousel spoons={spoons} onRateClick={() => setView("rate")} />
         )}
         {view === "graph" && (
-          <SpoonGraph3D spoons={spoons} />
+          <SpoonGraph3D />
         )}
         {view === "rate" && (
-          <div className="flex-1 overflow-y-auto">
-            <RatingPanel onSave={handleSaveSpoon} />
-          </div>
+          <LiveRatingView />
         )}
       </div>
     </div>

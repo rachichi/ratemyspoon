@@ -1,92 +1,129 @@
-import { useState } from "react";
 import Plot from "react-plotly.js";
-import type { Spoon } from "../data/spoons";
-import { computeScore } from "../utils/scoring";
-import Sidebar from "./Sidebar";
+import { computeSpoonRating, ratingFromParams } from "../utils/spoonScoring";
+import { GRAPH_SPOONS } from "../data/graphSpoons";
 
-interface Props {
-  spoons: Spoon[];
-}
+const CREAM = "#f5ede0";
+const FONT  = "Helvetica Neue, Helvetica, Arial, sans-serif";
 
-type Axis = "bowl" | "enjoyment" | "length" | "material";
-const AXIS_OPTIONS: Axis[] = ["bowl", "enjoyment", "length", "material"];
+const MATERIAL_COLOR: Record<string, string> = {
+  plastic: "#c03030",
+  wood:    "#c07a20",
+  metal:   "#3a8a3a",
+};
 
-export default function SpoonGraph3D({ spoons }: Props) {
-  const [axes, setAxes] = useState<[Axis, Axis, Axis]>(["bowl", "enjoyment", "length"]);
-  const [selected, setSelected] = useState<Spoon | null>(null);
+// Scoring surface: vary bowl_ratio (X) and enjoyment (Y), fix material at 0.5 (wood midpoint)
+const N = 28;
+const xVals: number[] = Array.from({ length: N }, (_, i) => i / (N - 1));
+const yVals: number[] = Array.from({ length: N }, (_, i) => i / (N - 1));
+const zGrid: number[][] = yVals.map(y => xVals.map(x => ratingFromParams(x, y, 0.5)));
 
-  function cycleAxis(slot: 0 | 1 | 2, dir: 1 | -1) {
-    const current = AXIS_OPTIONS.indexOf(axes[slot]);
-    const next = (current + dir + AXIS_OPTIONS.length) % AXIS_OPTIONS.length;
-    const newAxes = [...axes] as [Axis, Axis, Axis];
-    newAxes[slot] = AXIS_OPTIONS[next]!;
-    setAxes(newAxes);
-  }
+const rated = GRAPH_SPOONS.map(computeSpoonRating);
 
-  const data: Plotly.Data[] = [{
-    type: "scatter3d",
-    mode: "markers+text",
-    x: spoons.map(s => s.scores[axes[0]]),
-    y: spoons.map(s => s.scores[axes[1]]),
-    z: spoons.map(s => s.scores[axes[2]]),
-    text: spoons.map(s => s.name),
-    textposition: "top center",
+export default function SpoonGraph3D() {
+  const surfaceTrace = {
+    type:           "surface" as const,
+    x:              xVals,
+    y:              yVals,
+    z:              zGrid,
+    colorscale:     "RdYlGn",
+    cmin:           0,
+    cmax:           1,
+    opacity:        0.65,
+    showscale:      false,
+    hovertemplate:  "ratio: %{x:.2f}<br>enjoy: %{y:.2f}<br>rating: %{z:.2f}<extra></extra>",
+  };
+
+  const scatterTrace = {
+    type:         "scatter3d" as const,
+    mode:         "markers+text" as const,
+    x:            rated.map(r => r.bowl_to_handle_ratio),
+    y:            rated.map(r => r.enjoyment),
+    z:            rated.map(r => r.overall_rating),
+    text:         rated.map(r => r.name),
+    textposition: "top center" as const,
+    textfont:     { size: 9, color: "#1a1a1a" },
     marker: {
-      size: spoons.map(s => 6 + computeScore(s.scores) / 20),
-      color: spoons.map(s => computeScore(s.scores)),
+      size:       7,
+      color:      rated.map(r => r.overall_rating),
       colorscale: "RdYlGn",
-      cmin: 0,
-      cmax: 100,
-      opacity: 0.9,
+      cmin:       0,
+      cmax:       1,
+      opacity:    1,
+      line:       { color: "#1a1a1a", width: 0.5 },
     },
-    customdata: spoons.map((_, i) => i),
-  }];
+    hovertemplate: "%{text}<br>ratio: %{x:.2f}<br>enjoy: %{y:.2f}<br>overall: %{z:.2f}<extra></extra>",
+  };
 
-  const layout: Partial<Plotly.Layout> = {
-    paper_bgcolor: "#f5ede0",
-    plot_bgcolor: "#f5ede0",
-    font: { family: "Helvetica Neue, Helvetica, Arial, sans-serif", size: 10, color: "#1a1a1a" },
-    margin: { l: 0, r: 0, t: 0, b: 0 },
+  const layout = {
+    paper_bgcolor: CREAM,
+    plot_bgcolor:  CREAM,
+    font:          { family: FONT, size: 10, color: "#1a1a1a" },
+    margin:        { l: 0, r: 0, t: 40, b: 0 },
     scene: {
-      xaxis: { title: axes[0], gridcolor: "#ccc" },
-      yaxis: { title: axes[1], gridcolor: "#ccc" },
-      zaxis: { title: axes[2], gridcolor: "#ccc" },
-      bgcolor: "#f5ede0",
+      xaxis: { title: "Bowl Proportion", range: [0, 1] as [number, number], gridcolor: "#ccc" },
+      yaxis: { title: "Enjoyment",       range: [0, 1] as [number, number], gridcolor: "#ccc" },
+      zaxis: { title: "Overall Rating",  range: [0, 1] as [number, number], gridcolor: "#ccc" },
+      bgcolor: CREAM,
+      camera: { eye: { x: 1.6, y: -1.6, z: 0.9 } },
+    },
+    title: {
+      text: "Spoon Rating Surface — Ideal bowl proportion = 0.20",
+      font: { size: 11, color: "#1a1a1a" },
+      x:    0.5,
     },
   };
 
-  function handleClick(event: Readonly<Plotly.PlotMouseEvent>) {
-    const pt = event.points[0];
-    if (pt === undefined) return;
-    const idx = pt.customdata as number;
-    setSelected(spoons[idx] ?? null);
-  }
-
   return (
-    <div className="flex flex-1 overflow-hidden">
-      <div className="flex-1 relative">
-        {/* Axis toggle controls */}
-        <div className="absolute top-4 left-4 z-10 flex gap-2 text-xs tracking-widest uppercase">
-          {([0, 1, 2] as const).map(slot => (
-            <div key={slot} className="flex items-center gap-1 border border-warm-black/20 px-2 py-1" style={{ background: "rgba(245,237,224,0.9)" }}>
-              <button onClick={() => cycleAxis(slot, -1)} className="hover:opacity-50">‹</button>
-              <span className="w-16 text-center">{axes[slot]}</span>
-              <button onClick={() => cycleAxis(slot, 1)} className="hover:opacity-50">›</button>
-            </div>
-          ))}
-        </div>
-
+    <div className="flex-1 flex flex-col overflow-hidden" style={{ background: CREAM }}>
+      {/* 3D surface plot */}
+      <div style={{ flex: 1, minHeight: 0 }}>
         <Plot
-          data={data}
-          layout={layout}
+          data={[surfaceTrace, scatterTrace]}
+          layout={layout as Partial<Plotly.Layout>}
           style={{ width: "100%", height: "100%" }}
           config={{ displayModeBar: false, responsive: true }}
-          onClick={handleClick}
+          useResizeHandler
         />
       </div>
 
-      <div className="w-72 shrink-0 border-l border-warm-black/20 overflow-y-auto">
-        <Sidebar spoon={selected} onClose={() => setSelected(null)} />
+      {/* Data table */}
+      <div className="border-t border-warm-black/15 overflow-y-auto shrink-0" style={{ maxHeight: 210 }}>
+        <table className="w-full text-[10px]" style={{ borderCollapse: "collapse" }}>
+          <thead>
+            <tr style={{ background: "rgba(26,26,26,0.05)" }}>
+              {["Name", "Bowl", "Handle", "Ratio", "Enjoy.", "Material", "Ratio Pref.", "Overall"].map(h => (
+                <th key={h}
+                  className="px-3 py-2 text-left tracking-wide uppercase text-[9px] font-medium text-warm-black/50"
+                  style={{ borderBottom: "1px solid rgba(26,26,26,0.12)" }}>
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rated.map((r, i) => (
+              <tr key={r.name}
+                style={{
+                  background: i % 2 === 0 ? "transparent" : "rgba(26,26,26,0.025)",
+                  borderBottom: "1px solid rgba(26,26,26,0.06)",
+                }}>
+                <td className="px-3 py-1.5 font-sans text-[10px]">{r.name}</td>
+                <td className="px-3 py-1.5 tabular-nums font-mono">{r.bowl_length}</td>
+                <td className="px-3 py-1.5 tabular-nums font-mono">{r.handle_length}</td>
+                <td className="px-3 py-1.5 tabular-nums font-mono">{r.bowl_to_handle_ratio.toFixed(2)}</td>
+                <td className="px-3 py-1.5 tabular-nums font-mono">{r.enjoyment.toFixed(2)}</td>
+                <td className="px-3 py-1.5">
+                  <span className="inline-block px-1.5 py-0.5 rounded-sm text-[9px] uppercase tracking-wide text-white"
+                    style={{ background: MATERIAL_COLOR[r.material] ?? "#888" }}>
+                    {r.material}
+                  </span>
+                </td>
+                <td className="px-3 py-1.5 tabular-nums font-mono">{r.ratio_preference_score.toFixed(2)}</td>
+                <td className="px-3 py-1.5 tabular-nums font-mono font-medium">{r.overall_rating.toFixed(2)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
