@@ -62,6 +62,29 @@ export default function SpoonCarousel({ spoons }: Props) {
     return () => ro.disconnect();
   }, []);
 
+  // Touchpad horizontal scroll → step through the carousel
+  useEffect(() => {
+    const el = areaRef.current;
+    if (!el) return;
+    let accum = 0;
+    let lockUntil = 0;
+    const onWheel = (e: WheelEvent) => {
+      // Only react to horizontal intent; leave vertical scrolls alone
+      if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
+      e.preventDefault(); // stop the browser's back/forward swipe
+      const now = Date.now();
+      if (now < lockUntil) return;
+      accum += e.deltaX;
+      if (Math.abs(accum) > 40) {
+        setPos(p => p + (accum > 0 ? 1 : -1));
+        accum = 0;
+        lockUntil = now + 260;
+      }
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, []);
+
   useEffect(() => {
     const handleMove = (e: MouseEvent) => {
       mouseTarget.current = {

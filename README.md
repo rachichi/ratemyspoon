@@ -15,9 +15,12 @@ Open http://localhost:5173 (or whichever port Vite picks).
 
 `src/data/spoons.ts` is the **single source of truth**. Each spoon stores its three scoring
 inputs — `ratio`, `enjoyment`, and `material` — directly as 0–1 values (material is a
-keyword). Both the browse carousel and the 3D graph read from this one array and score it
+keyword). The browse carousel and the 3D graph both read from this one array and score it
 with the tiny pure helpers in `spoonScoring.ts`, so adding a spoon in one place makes it show
-up everywhere with no geometry or extra lists to keep in sync.
+up everywhere with no geometry or extra lists to keep in sync. The Plotly chart lives in a
+standalone `RatingGraph3D` component (transparent, self-sizing) that is reused in two places:
+the **Plot** tab (wrapped by `SpoonGraph3D` with an info box + data table) and, bare, in the
+**Rate Your Spoon** sidebar.
 
 ```
 src/
@@ -25,8 +28,7 @@ src/
 ├── main.tsx                     # React entry point
 │
 ├── data/
-│   ├── spoons.ts                # ★ Single source of truth — ratio/enjoyment/material per spoon
-│   └── graphSpoons.ts           # Legacy sample set — only feeds the live-view MiniRatingGraph
+│   └── spoons.ts                # ★ Single source of truth — ratio/enjoyment/material per spoon
 │
 ├── utils/
 │   ├── scoring.ts               # Legacy 0–25 per-category scoring (used only by the live view)
@@ -35,8 +37,8 @@ src/
 └── components/
     ├── Navbar.tsx                # Header bar
     ├── SpoonCarousel.tsx         # Browse view — image carousel + parallax score tags
-    ├── SpoonGraph3D.tsx          # 3D graph view — scatter + fitted surface + data table
-    ├── MiniRatingGraph.tsx       # SVG mini chart shown in the live-rating sidebar (uses graphSpoons.ts)
+    ├── RatingGraph3D.tsx         # Standalone Plotly 3D graph — transparent, self-sizing (also exports `rated`)
+    ├── SpoonGraph3D.tsx          # Plot tab — RatingGraph3D + info box + data table
     ├── LiveRatingView.tsx        # Live camera view — hand/face ML inference + real-time scoring
     └── CameraCapture.tsx         # Camera snapshot helper
 ```

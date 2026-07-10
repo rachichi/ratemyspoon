@@ -4,7 +4,7 @@ import * as handPoseDetection from "@tensorflow-models/hand-pose-detection";
 import * as faceapi from "@vladmandic/face-api";
 import type { SpoonScores } from "../utils/scoring";
 import { computeScore, getBadgeColor, BADGE_CLASSES } from "../utils/scoring";
-import MiniRatingGraph from "./MiniRatingGraph";
+import RatingGraph3D from "./RatingGraph3D";
 
 interface Props {}
 
@@ -420,14 +420,6 @@ export default function LiveRatingView(_props: Props) {
     py: smoothMouse.y * (PARALLAX[i]?.[1] ?? 6),
   }));
 
-  if (cameraError) {
-    return (
-      <div className="flex-1 flex items-center justify-center bg-cream">
-        <p className="text-sm text-warm-black/60 text-center max-w-xs leading-relaxed">{cameraError}</p>
-      </div>
-    );
-  }
-
   return (
     <div className="flex flex-1 overflow-hidden">
 
@@ -438,6 +430,13 @@ export default function LiveRatingView(_props: Props) {
           style={{ transform: "scaleX(-1)" }}
         />
         <canvas ref={canvasRef} className="hidden" />
+
+        {/* Camera denied — grey the stage, keep a legible message */}
+        {cameraError && (
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60">
+            <p className="text-white/80 text-sm text-center max-w-xs leading-relaxed px-6">{cameraError}</p>
+          </div>
+        )}
 
         {!modelsReady && (
           <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/50">
@@ -516,7 +515,7 @@ export default function LiveRatingView(_props: Props) {
       </div>
 
       {/* ── Sidebar ─────────────────────────────────────────────────────── */}
-      <div className="w-64 shrink-0 border-l border-warm-black/20 flex flex-col bg-white overflow-y-auto">
+      <div className={`w-64 shrink-0 border-l border-warm-black/20 flex flex-col bg-white overflow-y-auto ${cameraError ? "opacity-40 pointer-events-none select-none" : ""}`}>
         <div className="p-5 flex flex-col gap-5">
 
           <div className="text-center pt-1">
@@ -569,7 +568,12 @@ export default function LiveRatingView(_props: Props) {
             </div>
           </div>
 
-          <MiniRatingGraph />
+          <div>
+            <p className="text-[10px] uppercase tracking-widest text-warm-black/40 mb-2">Rating Surface</p>
+            <div style={{ height: 240 }}>
+              <RatingGraph3D />
+            </div>
+          </div>
 
         </div>
       </div>
