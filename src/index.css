@@ -11,3 +11,7 @@
     background-color: #f5ede0;
   }
 }
+
+.rl-header {
+  --rl-header-bg: transparent;
+}

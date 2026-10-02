@@ -1,5 +1,5 @@
 import { useState } from "react";
-import Navbar from "./components/Navbar";
+import { SiteFooter, SiteHeader } from "@rachichi/design";
 import SpoonCarousel from "./components/SpoonCarousel";
 import SpoonGraph3D from "./components/SpoonGraph3D";
 import LiveRatingView from "./components/LiveRatingView";
@@ -14,7 +14,7 @@ export default function App() {
 
   return (
     <div className="flex flex-col h-full text-warm-black" style={{ fontFamily: "Helvetica Neue, Helvetica, Arial, sans-serif" }}>
-      <Navbar />
+      <SiteHeader title="RATE MY SPOON" newTab />
 
       {/* View toggle */}
       <div className="flex shrink-0 border-b border-warm-black/10">
@@ -42,6 +42,7 @@ export default function App() {
           <LiveRatingView />
         )}
       </div>
+      <SiteFooter stack="react, typescript, tensorflow.js, plotly" />
     </div>
   );
 }
